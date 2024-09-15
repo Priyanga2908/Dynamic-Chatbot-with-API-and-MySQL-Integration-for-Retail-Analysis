@@ -5,6 +5,7 @@ const ChatPage = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [chatHistory, setChatHistory] = useState([]);
     const messagesEndRef = useRef(null);
 
     
@@ -13,6 +14,25 @@ const ChatPage = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    useEffect(() => {
+        // Fetch chat history when component mounts
+        const fetchChatHistory = async () => {
+          try {
+            const response = await fetch('http://localhost:5000/api/chat-history');
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
+            setChatHistory(data);
+          } catch (error) {
+            console.error('Error fetching chat history:', error);
+            
+          }
+        };
+      
+        fetchChatHistory();
+      }, []);
+      
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (input.trim()) {
@@ -39,6 +59,7 @@ const ChatPage = () => {
                 ]);
             } catch (error) {
                 console.error('Error sending message:', error);
+                
             } finally {
                 setIsTyping(false);
             }
@@ -52,8 +73,14 @@ const ChatPage = () => {
                 <div className="history-container">
                     <div className="history-header">Chat History</div>
                     <div className="history-box">
-                        <div className="history-message">Previous chat messages will appear here.</div>
-                    </div>
+  {chatHistory.map((entry, index) => (
+    <div key={index} className="history-message">
+      <strong>Customer {entry.CustomerID}:</strong> {entry.UserMessage}
+      <br />
+      <strong>Bot:</strong> {entry.BotMessage}
+    </div>
+  ))}
+          </div>
                 </div>
                 <div className="chat-container">
                     <div className="chat-messages">

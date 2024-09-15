@@ -1,8 +1,10 @@
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise'); // Import MySQL
+const logger = require('./logger'); // Import your logger configuration
+const morgan = require('morgan');
+const errorHandler = require('./errorMiddleware'); // Import your custom error handler
 require('dotenv').config();
 
 const app = express();
@@ -10,6 +12,11 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// Use morgan for HTTP request logging
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+
+
 
 // MySQL connection setup
 const connection = mysql.createPool({
@@ -76,6 +83,10 @@ app.post('/api/chat', async (req, res) => {
         // Generate a human-like response based on the query results
         const resultSummary = await generateHumanLikeResponse(queryResults);
 
+        // Save user message and bot response in the database
+        const insertQuery = 'INSERT INTO CustomerQueries (UserMessage, BotMessage, QueryDate) VALUES (?, ?, NOW())';
+        await connection.query(insertQuery, [message, resultSummary]);
+
         // Responding back with the human-like response
         res.json({
             //message: 'Query executed successfully',
@@ -123,6 +134,22 @@ Ensure the summary is easy to read.`;
     const data = await response.json();
     return data.choices[0].message.content.trim();
 };
+
+// Endpoint to get chat history
+app.get('/api/chat-history', async (req, res) => {
+    const sql = 'SELECT CustomerID, UserMessage , BotMessage, QueryDate FROM CustomerQueries ORDER BY QueryDate DESC';
+    try {
+        const [results] = await connection.query(sql); // Await the promise returned by query
+        res.json(results);
+    } catch (err) {
+        console.error('Database query failed:', err);
+        res.status(500).json({ error: 'Database query failed' });
+    }
+});
+
+// Error handling middleware must be after all other middleware and routes
+
+app.use(errorHandler);
 
 // Start the server
 app.listen(PORT, () => {
