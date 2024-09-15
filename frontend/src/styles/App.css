@@ -109,6 +109,7 @@ body {
     max-width: 80%;
     word-wrap: break-word;
     display: inline-block;
+    
 }
 
 .user-message {
@@ -118,6 +119,7 @@ body {
 
 .bot-message {
     align-self: flex-start;
+    background-color: #9d84ce;
 }
 
 .input-container {
